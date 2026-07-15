@@ -132,6 +132,10 @@ what is known.
 present; otherwise call fulltext_search separately for each acronym. Prefer passages \
 that explicitly expand the acronym. Never invent an expansion that never appears in \
 evidence text.
+10. For broad "recent / latest / updates / what's new" questions about an agency or \
+topic (e.g. NIST): if retrieved passages are from that agency/topic, summarize the \
+most update-oriented or dated items with citations. Do not refuse merely because the \
+question is open-ended.
 """
 
 
@@ -335,7 +339,41 @@ _STOPWORDS = {
     "please",
     "tell",
     "give",
+    # Vague / news-style question words — do not require them to appear in evidence.
+    "recent",
+    "latest",
+    "update",
+    "updates",
+    "news",
+    "current",
+    "overview",
+    "summary",
+    "summarize",
+    "anything",
+    "something",
+    "information",
+    "details",
+    "happen",
+    "happening",
+    "there",
+    "some",
+    "into",
 }
+
+# Topic/agency tokens that strongly link a question to retrieved corpus material.
+_TOPIC_MARKERS = (
+    "nist",
+    "cisa",
+    "nvd",
+    "cms",
+    "onc",
+    "hhs",
+    "healthit",
+    "nascio",
+    "kev",
+    "dod",
+    "rmf",
+)
 
 
 def _evidence_likely_relevant(question: str, evidence_blobs: list[str]) -> bool:
@@ -344,14 +382,24 @@ def _evidence_likely_relevant(question: str, evidence_blobs: list[str]) -> bool:
         return False
     blob = "\n".join(evidence_blobs).lower()
     q = question.lower()
+    has_cite = "cite:" in blob or "http" in blob
+    if not has_cite:
+        return False
+
     ids = re.findall(r"cve-\d{4}-\d+", q) + re.findall(r"\bbod\s*\d+", q)
     if ids:
         return any(i.lower().replace(" ", "") in blob.replace(" ", "") for i in ids)
     acronyms = _extract_acronyms(question)
     if acronyms and (_looks_like_definition_question(question) or len(acronyms) >= 2):
-        return any(a.lower() in blob for a in acronyms) and (
-            "cite:" in blob or "http" in blob
-        )
+        return any(a.lower() in blob for a in acronyms)
+
+    # Broad agency/topic questions ("recent NIST updates"): topic + retrieved cites.
+    topics = [t for t in _TOPIC_MARKERS if t in q]
+    if topics and any(t in blob for t in topics):
+        scores = [float(m) for m in re.findall(r"score=([0-9]+\.?[0-9]*)", blob)]
+        if not scores or max(scores) >= 0.72:
+            return True
+
     # General questions: require meaningful query-term overlap with evidence text.
     words = [
         w
@@ -359,10 +407,10 @@ def _evidence_likely_relevant(question: str, evidence_blobs: list[str]) -> bool:
         if w not in _STOPWORDS
     ]
     if not words:
-        return "cite:" in blob and "http" in blob
+        return True
     overlap = sum(1 for w in words if w in blob)
     need = 1 if len(words) <= 2 else max(2, (len(words) + 2) // 3)
-    return overlap >= need and ("cite:" in blob or "http" in blob)
+    return overlap >= need
 
 
 def _answer_is_coverage_hedge(answer: str) -> bool:
@@ -419,6 +467,9 @@ def _enforce_refuse_if_weak(
     has_evidence = _evidence_likely_relevant(question, evidence)
 
     if not has_evidence:
+        # Do not wipe a grounded answer that already cites URLs.
+        if "http" in answer.lower() and "not covered in the current sources" not in answer.lower():
+            return answer
         return REFUSE_PHRASE
 
     # Model sometimes hedges with unrelated cites; treat pure hedges as refuse.
