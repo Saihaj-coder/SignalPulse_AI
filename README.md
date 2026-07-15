@@ -230,6 +230,17 @@ Then open http://localhost:8501.
 | 10 | Evaluation (`run_eval.py` / practical questions; Ragas optional) |
 | 11 | Polish & demo |
 
+## Future steps
+
+Natural next work after the current demo:
+
+- **Scheduled ingest** — run `run_pipeline.py` on a cadence with Windows Task Scheduler, cron, or a GitHub Actions schedule so the corpus refreshes without manual runs (keeping incremental/hash skip behavior).
+- **Hosted deployment** — move beyond localhost: host the FastAPI console + Neo4j (or managed Neo4j), HTTPS, and basic auth or company SSO for internal employees.
+- **Watchlists & digests** — let users follow topics (e.g., a CVE family, agency, or keyword) and receive email/Teams digests when new matching documents are ingested.
+- **Richer evaluation** — expand the practical question set, track refuse/false-refuse rates over time, and optionally harden Ragas faithfulness checks in CI.
+- **More sources** — add connectors where official APIs/feeds exist (and documented fallbacks where they do not), without changing the rest of the pipeline.
+- **Operational polish** — ingest run history in the Data Factory UI, clearer failure alerts when a source/API rate-limits, and rate-limit-aware batching for overnight jobs.
+
 ---
 
 *All data sources are public U.S. government information; no confidential data
