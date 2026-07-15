@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SignalPulse AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@14.1.3/marked.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" fill="#0a1628"/>
+          <circle cx="20" cy="20" r="13.5" stroke="#3d8fb5" stroke-width="1.4" opacity="0.55"/>
+          <circle cx="20" cy="20" r="8.5" stroke="#5eb3a8" stroke-width="1.4" opacity="0.8"/>
+          <path d="M8 21.5c2.2-1.2 3.6-4.4 5.4-4.4 2.2 0 3.1 5.8 5.4 5.8 2.1 0 3.2-5.4 5.5-5.4 1.9 0 3.4 3.2 5.7 4.4"
+                stroke="#e8f4f2" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="20" cy="20" r="2.4" fill="#5eb3a8"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <strong>SignalPulse AI</strong>
+        <span>Cyber &amp; regulatory intelligence</span>
+      </div>
+    </div>
+
+    <div class="nav-label">Workspaces</div>
+    <button class="nav-btn active" data-view="hub">Intelligence Hub</button>
+    <button class="nav-btn nav-ask" data-view="ask">Ask Assistant</button>
+    <button class="nav-btn" data-view="corpus">Corpus</button>
+    <button class="nav-btn" data-view="pipeline">Data Factory</button>
+    <button class="nav-btn" data-view="about">About</button>
+
+    <div class="side-foot">
+      <div class="sync-text" id="syncLabel">
+        <span class="sync-dot" id="syncDot"></span>
+        Checking corpus…
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <form class="ask-wrap" id="globalAskForm">
+        <input
+          id="globalAsk"
+          type="text"
+          autocomplete="off"
+          placeholder="Ask anything — KEVs, NIST CSF, CMS notices, NASCIO priorities…"
+        />
+        <button class="btn btn-primary" type="submit" id="globalAskBtn">Ask</button>
+      </form>
+    </div>
+
+    <div class="agency-row" id="agencyRow">
+      <span class="lbl">Agency</span>
+      <button class="pill active" data-focus="all">All</button>
+      <button class="pill" data-focus="cyber" style="color:#1d4ed8"><span class="dot"></span>Cyber</button>
+      <button class="pill" data-focus="nist" style="color:#0f766e"><span class="dot"></span>NIST</button>
+      <button class="pill" data-focus="health" style="color:#6d28d9"><span class="dot"></span>Health</button>
+      <button class="pill" data-focus="defense" style="color:#334155"><span class="dot"></span>Defense</button>
+      <button class="pill" data-focus="state" style="color:#c2410c"><span class="dot"></span>State</button>
+    </div>
+
+    <!-- HUB -->
+    <section class="view active" id="view-hub">
+      <div class="page-head">
+        <h1>Intelligence Hub</h1>
+        <p>
+          SignalPulse monitors selected public U.S. government sources and stores the results
+          here for review and Q&amp;A. The corpus includes cybersecurity, health IT, standards,
+          and regulatory content from CISA, NVD, the Federal Register (CMS, HHS/ONC, Defense),
+          NIST, HealthIT.gov, and NASCIO.
+        </p>
+      </div>
+
+      <div class="ask-cta panel" id="askCta">
+        <div>
+          <h2 style="margin:0">Need an answer?</h2>
+          <p class="sub" style="margin:0.25rem 0 0">
+            Open Ask Assistant for a full chat with citations, or type a quick question in the bar above.
+          </p>
+        </div>
+        <button class="btn btn-primary" type="button" id="hubOpenAsk">Go to Ask Assistant</button>
+      </div>
+
+      <div class="insight" id="hubInsight">Loading corpus overview…</div>
+
+      <div class="grid-kpis" id="kpiRow"></div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Documents by agency</h2>
+          <div class="sub">Where corpus mass sits after the latest ingest</div>
+          <div class="chart-box"><canvas id="chartAgency"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Documents by domain</h2>
+          <div class="sub">Strategic buckets used across connectors</div>
+          <div class="chart-box"><canvas id="chartDomain"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Entity types in the graph</h2>
+          <div class="sub">LLM-extracted nodes linked to passages</div>
+          <div class="chart-box"><canvas id="chartEntities"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Last pipeline run</h2>
+          <div class="sub" id="ingestSub">Ingest report from last_ingest.json</div>
+          <div class="metrics" id="ingestMetrics"></div>
+          <div class="muted" id="ingestSources" style="margin-top:0.75rem"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Recently collected documents</h2>
+        <div class="sub">Newest titles in the graph for the current agency focus</div>
+        <div class="chips" id="hubChips"></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Published</th>
+                <th>Agency</th>
+                <th>Title</th>
+                <th>Chunks</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="hubDocsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASK -->
+    <section class="view" id="view-ask">
+      <div class="page-head">
+        <h1>Ask Assistant</h1>
+        <p>
+          Ask in plain English. Answers come from the collected sources, with links you can check.
+          If nothing relevant is found, the assistant says so.
+        </p>
+      </div>
+      <div class="chips" id="askChips"></div>
+      <div class="ask-layout">
+        <div class="panel ask-chat-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+            <h2 style="margin:0">Conversation</h2>
+            <button class="btn btn-ghost" type="button" id="clearChat">Clear</button>
+          </div>
+          <div class="chat-stream" id="chatStream">
+            <div class="empty">Ask a question below, or try a starter above.</div>
+          </div>
+          <form class="chat-composer" id="chatAskForm">
+            <textarea
+              id="chatAsk"
+              rows="2"
+              placeholder="Ask about KEVs, NIST guidance, CMS notices, NASCIO priorities…"
+            ></textarea>
+            <button class="btn btn-primary" type="submit" id="chatAskBtn">Ask</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Citations this session</h2>
+          <div class="sub">Links from answers in this conversation</div>
+          <ul class="cite-list" id="citeList"></ul>
+          <div class="empty" id="citeEmpty">Citations appear after you get an answer.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CORPUS -->
+    <section class="view" id="view-corpus">
+      <div class="page-head">
+        <h1>Corpus browser</h1>
+        <p>Browse every document currently loaded for retrieval and citation.</p>
+      </div>
+      <div class="corpus-tools">
+        <input id="corpusSearch" type="search" placeholder="Filter by title or agency…" />
+        <button class="btn" type="button" id="corpusRefresh">Refresh</button>
+      </div>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <div class="table-wrap" style="max-height:68vh;border:0;border-radius:0">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Published</th>
+                <th>Agency</th>
+                <th>Domain</th>
+                <th>Title</th>
+                <th>Chunks</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="corpusBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section class="view" id="view-pipeline">
+      <div class="page-head">
+        <h1>Data Factory</h1>
+        <p>Scheduled collection that fills the intelligence store so Ask Assistant stays current.</p>
+      </div>
+      <div class="insight">
+        Runs are <b>incremental</b> (content-hash skip). Embeddings stay <b>local</b>.
+        Recurring cadence uses Windows Task Scheduler when you are ready — demos use
+        <code>run_demo_ingest.ps1</code>.
+      </div>
+      <div class="panel" style="margin-bottom:0.85rem">
+        <h2>Pipeline stages</h2>
+        <div class="sub">Extract → graph load, as described in the project outline</div>
+        <div class="stages" id="stages"></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Connector catalog</h2>
+          <div class="sub">Sources wired for demo ingest · live approx. counts by agency</div>
+          <div class="source-grid" id="sourceGrid"></div>
+        </div>
+        <div class="panel">
+          <h2>Relationship types extracted</h2>
+          <div class="sub">How entities in the knowledge store connect across documents</div>
+          <div class="chart-box"><canvas id="chartRels"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="view" id="view-about">
+      <div class="page-head">
+        <h1>About SignalPulse AI</h1>
+        <p>Built for 22nd Century Technologies delivery teams</p>
+      </div>
+
+      <div class="panel">
+        <h2>What it is</h2>
+        <p class="about-prose">
+          SignalPulse AI helps teams stay current on public U.S. cyber and regulatory updates
+          without chasing websites by hand. It collects data from official sources on a schedule
+          (or when you run a collection), stores that material in one place, and lets people ask
+          questions in plain English. Answers point back to the original documents.
+        </p>
+      </div>
+
+      <div class="about-two" style="margin-top:0.85rem">
+        <div class="panel about-card">
+          <div class="about-kicker">Data Factory</div>
+          <h3>Keep the corpus current</h3>
+          <p class="about-prose">
+            Collectors pull data from sources such as CISA, NVD, the Federal Register, NIST,
+            HealthIT.gov, and NASCIO. Text is cleaned, organized, and stored so it can be searched
+            later. Unchanged documents are skipped on the next run.
+          </p>
+          <p class="about-prose">
+            Use Intelligence Hub, Corpus, and Data Factory to see what is already loaded.
+          </p>
+        </div>
+        <div class="panel about-card">
+          <div class="about-kicker">Ask Assistant</div>
+          <h3>Get cited answers</h3>
+          <p class="about-prose">
+            Open Ask Assistant and type a question. The system finds relevant passages in the
+            stored corpus and answers from that material, with links you can open. If the corpus
+            does not cover the question, it says so instead of guessing.
+          </p>
+          <button class="btn btn-primary" type="button" id="aboutOpenAsk">Open Ask Assistant</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:0.85rem">
+        <div class="panel">
+          <h2>Sources in scope</h2>
+          <ul class="about-list">
+            <li>Cyber: CISA known exploited vulnerabilities, NVD CVE details</li>
+            <li>Federal Register: CMS, HHS/ONC, and Defense notices</li>
+            <li>Standards: NIST news, CSF, RMF, SP 800-53</li>
+            <li>Health IT: HealthIT.gov / ONC updates</li>
+            <li>State: NASCIO CIO priorities</li>
+          </ul>
+          <p class="about-prose muted">Public government information only. Not confidential company data.</p>
+        </div>
+        <div class="panel">
+          <h2>Good to know</h2>
+          <ul class="about-list">
+            <li>This is an internal demo and evaluation prototype.</li>
+            <li>It is not legal or compliance advice.</li>
+            <li>Collection is scheduled or on demand, not live second by second.</li>
+            <li>For important decisions, confirm details on the original .gov page.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="loader" id="loader"><div class="box">Retrieving grounded sources…</div></div>
+</body>
+</html>

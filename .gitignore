@@ -1,0 +1,61 @@
+# --- Secrets (never commit) ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Local data & caches (regenerable) ---
+data/raw/
+data/processed/
+*.log
+
+# Keep seed text that connectors use as fallbacks
+!data/seeds/
+!data/seeds/**
+
+# Hugging Face / local model caches if placed in-project
+.cache/
+models/
+huggingface/
+
+# Local runtime (portable JDK + Neo4j) — large, machine-specific
+runtime/
+
+# Scratch / temp scripts
+_tmp_*.py
+tmp_*.py
+$null
+
+# Local-only docs (superseded by outline / README)
+22nd_Centuries_Project_Proposal.pdf
+*Proposal*.pdf
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*~

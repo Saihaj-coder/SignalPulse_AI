@@ -1,0 +1,35 @@
+NASCIO State CIO Top Ten Policy and Technology Priorities for 2026
+
+Source: National Association of State Chief Information Officers (NASCIO).
+Public summary of the annual State CIO Top 10 Priorities survey (51 state and
+territory CIOs). Full PDF: https://www.nascio.org/wp-content/uploads/2025/12/NASCIO-2026-State-Top-10-Priorities_a11y.pdf
+Resource page: https://www.nascio.org/resource/state-cio-top-ten-policy-and-technology-priorities-for-2026/
+
+This seed text is used when the live NASCIO PDF is blocked by bot-protection
+from automated clients. Content reflects the publicly published 2026 list.
+
+Headline: Artificial intelligence takes the number one spot for the first time,
+overtaking cybersecurity, which held the top position for 12 straight years.
+Other shifts include upward movement for accessibility and budget/cost control;
+consolidation returns to the list; digital government and data management decline.
+
+2026 Priority Technologies, Applications and Tools (Top 10):
+1. Artificial Intelligence / GenAI / Agentic AI / Machine Learning
+2. Application Modernization / Renovation
+3. Cloud Solutions
+4. Identity and Access Management
+5. Software-as-a-Service (SaaS)
+6. Security Enhancement Tools
+7. Enterprise Resource Planning (ERP)
+8. Data Management
+9. Data Analytics
+10. Networking
+
+Related policy themes for state CIOs include cybersecurity and risk management,
+budget and fiscal management, digital government and digital services,
+identity and access management, consolidation and optimization, and accessibility.
+
+NASCIO uses the Top 10 to shape strategic priorities, guide workgroups and issue
+forums, and inform conference programming for the year ahead. State technology
+leaders use this ranking as a roadmap for enterprise IT strategy across state
+and local government.

@@ -1,0 +1,42 @@
+SignalPulse AI — Public U.S. Agency Glossary (seed reference)
+
+This reference defines common agency acronyms that appear across ingested
+cybersecurity, health IT, standards, and regulatory sources. Use it when users
+ask what an acronym stands for or what an agency does.
+
+CMS — Centers for Medicare & Medicaid Services
+CMS is a federal agency within the U.S. Department of Health and Human Services
+(HHS). It administers the Medicare and Medicaid programs and related health-care
+coverage and quality programs. CMS rules and notices frequently appear in the
+Federal Register.
+
+ONC — Office of the National Coordinator for Health Information Technology
+ONC is the principal federal entity charged with coordinating nationwide efforts
+to advance health information technology and the electronic exchange of health
+information. ONC work and funding announcements are published through
+HealthIT.gov and related HHS channels.
+
+NIST — National Institute of Standards and Technology
+NIST is a non-regulatory agency of the U.S. Department of Commerce. It develops
+measurement standards and publishes widely used cybersecurity frameworks and
+guidance, including the Cybersecurity Framework (CSF), the Risk Management
+Framework (RMF), and Special Publication 800-53.
+
+CISA — Cybersecurity and Infrastructure Security Agency
+CISA is a U.S. Department of Homeland Security agency that leads national
+cybersecurity risk reduction. It publishes the Known Exploited Vulnerabilities
+(KEV) catalog and Binding Operational Directives (BODs) for federal agencies.
+
+NVD — National Vulnerability Database
+NVD is the U.S. government repository of standards-based vulnerability
+management data, operated by NIST. It catalogs Common Vulnerabilities and
+Exposures (CVE) records with severity and description details.
+
+HHS — Department of Health and Human Services
+HHS is the U.S. cabinet department that includes CMS, ONC-related health IT
+programs, and other public-health and civilian health agencies whose notices
+appear in the Federal Register.
+
+NASCIO — National Association of State Chief Information Officers
+NASCIO represents state CIOs and publishes annual state CIO policy and
+technology priorities used by public-sector technology leaders.

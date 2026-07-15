@@ -1,0 +1,59 @@
+# ============================================================================
+# SignalPulse AI — Python dependencies (pinned for reproducibility)
+# ----------------------------------------------------------------------------
+# Recommended Python: 3.11 or 3.12  (torch/sentence-transformers wheels may not
+# yet exist for 3.14). Install inside a virtual environment. See README.md.
+# ============================================================================
+
+# --- Configuration & environment ---
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# --- Database: Neo4j (graph + vector store) ---
+neo4j==5.26.0
+langchain-neo4j==0.1.1
+
+# --- Data collection (Extract) ---
+httpx==0.27.2               # HTTP client for JSON APIs
+requests==2.32.3            # fallback HTTP client
+feedparser==6.0.11          # RSS/Atom (XML) feeds
+beautifulsoup4==4.12.3      # HTML parsing / navigation
+lxml==5.3.0                 # fast XML/HTML backend for the above
+trafilatura==1.12.2         # main-body text extraction from web pages
+pypdf==5.0.1                # fast PDF text extraction
+pdfplumber==0.11.4          # robust PDF extraction (tables/columns)
+pandas==2.2.3               # CSV / tabular handling
+
+# --- Text processing & embeddings (Transform) ---
+sentence-transformers==3.1.1   # local, free embedding models (pulls torch)
+langchain==0.3.7
+langchain-community==0.3.5
+langchain-text-splitters==0.3.2
+langchain-huggingface==0.1.2
+
+# --- LLMs (free tiers) ---
+langchain-google-genai==2.0.4   # Google Gemini
+langchain-groq==0.2.1           # Groq
+langchain-mistralai==0.2.4      # Mistral
+langchain-openai==0.2.8         # DeepSeek (OpenAI-compatible API)
+
+# --- Agent orchestration ---
+langgraph==0.2.45
+
+# --- User interface ---
+fastapi>=0.116.1
+uvicorn[standard]>=0.35.0
+
+# --- Evaluation ---
+ragas==0.2.3
+datasets==3.0.1
+nltk==3.9.1
+
+# --- Utilities ---
+tenacity==9.0.0                 # retries/backoff for API calls
+tqdm==4.66.5                    # progress bars
+
+# --- Notebooks ---
+jupyter==1.1.1
+ipykernel==6.29.5
