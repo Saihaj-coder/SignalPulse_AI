@@ -22,5 +22,5 @@ Start-Process -FilePath "$nj\bin\neo4j.bat" -ArgumentList "console" -WindowStyle
 
 Write-Host "Neo4j is starting (takes ~20-30s)..." -ForegroundColor Green
 Write-Host "  Browser : http://localhost:7474"
-Write-Host "  Login   : neo4j / signalpulse123"
+Write-Host "  Login   : neo4j / password from your .env (NEO4J_PASSWORD)"
 Write-Host "  Logs    : runtime\neo4j-out.log"

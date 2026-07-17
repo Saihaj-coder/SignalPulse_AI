@@ -4,7 +4,7 @@
 
 Prepared for 22nd Century Technologies, Inc.
 
-**SignalPulse AI** is an internal tool for teams that support federal and state clients. It does two jobs that are usually manual today:
+**SignalPulse AI** is an internal tool for teams that support federal and state clients. It runs entirely on your own machine (local Neo4j + free-tier LLM APIs) and does two jobs that are usually manual today:
 
 1. **Automatically collect and refresh** selected **public U.S. government** sources across **cybersecurity**, **health IT**, **technology standards & risk frameworks**, **federal regulation**, and **state CIO priorities** (for example CISA KEV/alerts, NVD CVEs, Federal Register / CMS / ONC–HealthIT notices, NIST publications, and NASCIO materials).
 2. **Answer employee questions in plain English** only from that live corpus — with **clickable source citations** — or clearly say the topic is **not covered** in current sources (no silent guessing from general LLM training data).
@@ -19,7 +19,7 @@ For the full design (problem statement, concepts, architecture), see
 ## Project structure
 
 ```
-22nd Project/
+SignalPulse_AI/
 ├── notebooks/                 # Step-by-step build notebooks
 ├── signalpulse/               # Reusable Python package (ETL, retrieval, agent)
 ├── web/                       # Enterprise console (HTML/CSS/JS)
@@ -30,7 +30,7 @@ For the full design (problem statement, concepts, architecture), see
 │   ├── raw/                   # Local fetch cache — gitignored
 │   └── processed/             # Ingest/eval stamps — gitignored
 ├── webapp.py                  # Primary UI backend (FastAPI)
-├── run_chat.ps1               # Launch console (http://localhost:8501)
+├── run_chat.ps1               # Launch the web console locally
 ├── run_pipeline.py            # Ingestion pipeline CLI
 ├── run_demo_ingest.ps1        # Demo/weekly ingest helper
 ├── run_eval.py                # Practical question eval runner
@@ -62,7 +62,7 @@ notebooks, chat UI, and `run_pipeline.py` all import.
 
 ## Setup (Windows / PowerShell)
 
-Run these from the project root: `C:\Users\saihaj\Documents\22nd Project`
+Clone the repository, then run these commands from the project root.
 
 ### 1. Create and activate a virtual environment (Python 3.12)
 
@@ -108,7 +108,8 @@ system-wide install required. Helper scripts start/stop it:
 .\stop_neo4j.ps1      # stop the database
 ```
 
-- Browser UI: <http://localhost:7474> (login `neo4j` / `signalpulse123`)
+- Browser UI: <http://localhost:7474> on your machine (user `neo4j`; password is
+  whatever you set for `NEO4J_PASSWORD` in `.env`)
 - Bolt URI (used by the app): `bolt://localhost:7687`
 - Startup logs: `runtime\neo4j-out.log`
 
@@ -196,11 +197,18 @@ Incremental re-runs skip unchanged docs, so a second `demo`/`weekly` pass after
 LLM quota resets will pick up any rate-limited failures (common on dense NIST
 800-53 controls). Seed/fallback connectors remain when live .gov sites return 403.
 
-### Chat UI (Step 9)
+---
+
+## Web console
 
 Custom enterprise console (FastAPI + HTML/CSS/JS) over the live Neo4j corpus and
-`ask()` agent — Intelligence Hub with KPIs/charts/tables, Ask workspace with
-citations, Corpus browser, and Data Factory view.
+the `ask()` agent, with five workspaces:
+
+- **Intelligence Hub** — corpus KPIs, charts, and latest documents at a glance
+- **Ask Assistant** — plain-English Q&A with clickable source citations
+- **Corpus** — browse and search every ingested document
+- **Data Factory** — pipeline/source status and ingest history
+- **About** — what the tool does and how answers stay grounded
 
 ```powershell
 .\start_neo4j.ps1
@@ -209,7 +217,8 @@ citations, Corpus browser, and Data Factory view.
 python -m uvicorn webapp:app --host 127.0.0.1 --port 8501 --reload
 ```
 
-Then open http://localhost:8501.
+Then open `http://localhost:8501` in your browser. The console is served
+locally on the machine that runs it — nothing is exposed to the internet.
 
 ---
 
@@ -217,7 +226,7 @@ Then open http://localhost:8501.
 
 | Step | Deliverable |
 |---|---|
-| 0 | Project setup (this step) |
+| 0 | Project setup |
 | 1 | Neo4j connection + schema (`notebooks/01_neo4j_setup.ipynb`) |
 | 2 | Data connectors (`notebooks/02_connectors.ipynb`) |
 | 3 | Clean, chunk & embed (`notebooks/03_clean_chunk_embed.ipynb`) |
