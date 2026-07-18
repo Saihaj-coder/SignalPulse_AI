@@ -2,8 +2,6 @@
 
 **Public-sector intelligence from official U.S. government sources — collected, indexed, and asked with citations.**
 
-Prepared for 22nd Century Technologies, Inc.
-
 **SignalPulse AI** is an internal tool for teams that support federal and state clients. It runs entirely on your own machine (local Neo4j + free-tier LLM APIs) and does two jobs that are usually manual today:
 
 1. **Automatically collect and refresh** selected **public U.S. government** sources across **cybersecurity**, **health IT**, **technology standards & risk frameworks**, **federal regulation**, and **state CIO priorities** (for example CISA KEV/alerts, NVD CVEs, Federal Register / CMS / ONC–HealthIT notices, NIST publications, and NASCIO materials).

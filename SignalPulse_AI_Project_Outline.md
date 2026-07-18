@@ -2,7 +2,6 @@
 
 **Public-sector intelligence from official U.S. government sources — collected, indexed, and asked with citations.**
 
-Prepared for: 22nd Century Technologies, Inc.
 Document type: Full technical outline with fundamentals
 
 ---
@@ -103,6 +102,10 @@ RAG is a technique where, before the LLM answers, we **retrieve** relevant real 
 A basic RAG system always runs the same retrieval (usually vector search), then answers. An **agent** is an LLM that can *decide for itself* which tool to call, whether to search again, and when it has enough evidence.
 
 **Agentic RAG** = RAG where the agent chooses *how* to retrieve (e.g., fulltext for a CVE id, vector for a conceptual NIST question, graph for “what is this entity tied to?”), possibly in multiple rounds, before answering with citations.
+
+**When RAG can be called GraphRAG.** GraphRAG is a style of RAG where retrieval is **graph-first**: the system mainly walks entities and relationships (and sometimes graph community summaries) to assemble context, then the LLM answers from that graph-derived evidence. Using a graph database alone does **not** make a system GraphRAG — the *retrieval strategy* has to center on the graph.
+
+**Why SignalPulse is Agentic RAG, not GraphRAG.** We store documents, passages, embeddings, *and* a knowledge graph in Neo4j (a hybrid store). At query time the agent may use `vector_search`, `fulltext_search`, or `graph_search`. Day-to-day answers usually come from vector and/or fulltext; graph lookup is used when the question is about connections. That means SignalPulse is **hybrid / graph-augmented Agentic RAG** — graph-capable, but not GraphRAG end-to-end.
 
 **Tool (function calling)**: a tool is a normal Python function (e.g., `vector_search(query)`) that we expose to the LLM. The LLM cannot touch the database directly; instead it "calls" these tools by name with arguments, we run the function, and we hand the results back to the LLM. This keeps the system safe and controllable.
 
