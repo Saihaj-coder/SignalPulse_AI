@@ -31,6 +31,8 @@ SignalPulse_AI/
 ├── run_chat.ps1               # Launch the web console locally
 ├── run_pipeline.py            # Ingestion pipeline CLI
 ├── run_demo_ingest.ps1        # Demo/weekly ingest helper
+├── run_scheduled_ingest.ps1   # Unattended: start Neo4j → ingest → stop
+├── register_scheduled_ingest.ps1  # Register weekly/bi-weekly Task Scheduler job
 ├── run_eval.py                # Practical question eval runner
 ├── start_neo4j.ps1 / stop_neo4j.ps1
 ├── requirements.txt
@@ -237,16 +239,43 @@ locally on the machine that runs it — nothing is exposed to the internet.
 | 10 | Evaluation (`run_eval.py` / practical questions; Ragas optional) |
 | 11 | Polish & demo |
 
+## Scheduled ingest (laptop automation)
+
+Almost everything except “laptop must be able to run” is handled in scripts:
+
+```powershell
+# Dry-run the unattended flow once (starts Neo4j if needed, waits, ingests, stops Neo4j)
+.\run_scheduled_ingest.ps1 -IngestProfile weekly
+
+# Or bi-weekly (skips if last successful ingest was < 13 days ago)
+.\run_scheduled_ingest.ps1 -IngestProfile weekly -BiWeekly
+
+# Register Windows Task Scheduler (Sunday 13:00 / 1 PM by default; wakes from sleep if allowed).
+# By default this is a 3-month TRIAL: the task stops firing after the window and
+# then deletes itself — a safe way to observe automation before committing.
+.\register_scheduled_ingest.ps1 -Cadence Weekly -Time 13:00
+.\register_scheduled_ingest.ps1 -Cadence BiWeekly -Time 13:00
+
+# Choose a different trial length, or run indefinitely with 0
+.\register_scheduled_ingest.ps1 -TrialMonths 2
+.\register_scheduled_ingest.ps1 -TrialMonths 0
+
+# Remove the task at any time
+.\register_scheduled_ingest.ps1 -Unregister
+```
+
+The runner also checks free disk space and logs to `data/processed/scheduled_ingest.log`.
+It stops Neo4j only if **this job started it** and the chat console is not listening on port 8501.
+
 ## Future steps
 
 Natural next work after the current demo:
 
-- **Scheduled ingest** — run `run_pipeline.py` on a cadence with Windows Task Scheduler, cron, or a GitHub Actions schedule so the corpus refreshes without manual runs (keeping incremental/hash skip behavior).
-- **Hosted deployment** — move beyond localhost: host the FastAPI console + Neo4j (or managed Neo4j), HTTPS, and basic auth or company SSO for internal employees.
+- **Hosted deployment** — move beyond a personal laptop: host the FastAPI console + Neo4j (or managed Neo4j), HTTPS, and basic auth or company SSO for internal employees.
 - **Watchlists & digests** — let users follow topics (e.g., a CVE family, agency, or keyword) and receive email/Teams digests when new matching documents are ingested.
 - **Richer evaluation** — expand the practical question set, track refuse/false-refuse rates over time, and optionally harden Ragas faithfulness checks in CI.
 - **More sources** — add connectors where official APIs/feeds exist (and documented fallbacks where they do not), without changing the rest of the pipeline.
-- **Operational polish** — ingest run history in the Data Factory UI, clearer failure alerts when a source/API rate-limits, and rate-limit-aware batching for overnight jobs.
+- **Operational polish** — richer ingest run history in the Data Factory UI, clearer failure alerts when a source/API rate-limits, and tighter overnight batching.
 
 ---
 

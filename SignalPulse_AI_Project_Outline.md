@@ -212,7 +212,7 @@ We write the results into the hybrid store using this graph model:
 We create a **vector index** on chunk embeddings (for semantic search), a **full-text index** on text (for exact-term search), and **uniqueness constraints** on IDs (to keep loads idempotent).
 
 ### Stage 8 — Schedule
-The whole job is triggered on a schedule — via a cron job, a GitHub Actions scheduled workflow, or Windows Task Scheduler for local runs.
+For a laptop demo, use `run_scheduled_ingest.ps1` (starts Neo4j if needed, waits for Bolt, runs ingest, stops Neo4j when safe) and register it with Windows Task Scheduler via `register_scheduled_ingest.ps1` (weekly or bi-weekly). Production would use an always-on host or managed Neo4j plus cron / cloud scheduler.
 
 ---
 
