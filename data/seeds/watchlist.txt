@@ -1,0 +1,14 @@
+# SignalPulse AI watchlist
+# One keyword or phrase per line (case-insensitive). After each ingest run,
+# any NEW or UPDATED document mentioning one of these is flagged as an alert
+# in the digest (data/processed/digest_latest.md and the Data Factory view).
+# Lines starting with # are comments. Edit freely — no restart needed.
+
+ransomware
+zero-day
+known exploited
+critical vulnerability
+NIST CSF
+prior authorization
+interoperability
+artificial intelligence

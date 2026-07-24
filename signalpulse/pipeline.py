@@ -30,6 +30,7 @@ import time
 from dataclasses import dataclass, field
 
 from signalpulse import connectors as C
+from signalpulse import digest as D
 from signalpulse import extraction as X
 from signalpulse import graph
 from signalpulse import loader as L
@@ -50,6 +51,8 @@ class PipelineReport:
     relationships: int = 0
     errors: list[str] = field(default_factory=list)
     seconds: float = 0.0
+    # One record per new/updated document — feeds the ingest digest & watchlist.
+    changes: list[dict] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -112,6 +115,7 @@ def run_pipeline(
 
     connectors = connectors or C.default_connectors()
     report = PipelineReport()
+    watchlist = D.load_watchlist()
 
     # Extract stage: gather documents from every source (failures isolated).
     docs = C.fetch_all(connectors, limit=limit, connector_limits=connector_limits)
@@ -127,6 +131,22 @@ def run_pipeline(
             report.chunks += stats["chunks"]
             report.entity_mentions += stats["entity_mentions"]
             report.relationships += stats["relationships"]
+            if status in ("new", "updated"):
+                report.changes.append(
+                    {
+                        "status": status,
+                        "source_id": doc.source_id,
+                        "title": doc.title,
+                        "url": doc.url,
+                        "agency": doc.agency,
+                        "domain": doc.domain,
+                        "connector": doc.connector,
+                        "published_date": doc.published_date,
+                        "watchlist_hits": D.keyword_hits(
+                            f"{doc.title}\n{doc.raw_text}", watchlist
+                        ),
+                    }
+                )
             if verbose:
                 tag = {"new": "NEW ", "updated": "UPD ", "skipped": "skip"}[status]
                 print(

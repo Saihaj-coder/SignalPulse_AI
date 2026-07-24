@@ -1,16 +1,186 @@
 # SignalPulse AI
 
-**Public-sector intelligence from official U.S. government sources — collected, indexed, and asked with citations.**
+**Automated public-sector intelligence from official U.S. government sources — collected, indexed, and queried with citations.**
 
-**SignalPulse AI** is an internal tool for teams that support federal and state clients. It runs entirely on your own machine (local Neo4j + free-tier LLM APIs) and does two jobs that are usually manual today:
+SignalPulse AI monitors selected federal and state public sources, stores them in a searchable knowledge graph, and answers questions in plain English with links back to the original documents. It is built for teams that need to stay current on cyber, health IT, standards, and regulatory updates without manually checking dozens of `.gov` sites.
 
-1. **Automatically collect and refresh** selected **public U.S. government** sources across **cybersecurity**, **health IT**, **technology standards & risk frameworks**, **federal regulation**, and **state CIO priorities** (for example CISA KEV/alerts, NVD CVEs, Federal Register / CMS / ONC–HealthIT notices, NIST publications, and NASCIO materials).
-2. **Answer employee questions in plain English** only from that live corpus — with **clickable source citations** — or clearly say the topic is **not covered** in current sources (no silent guessing from general LLM training data).
+For the full design narrative (problem statement, concepts, architecture), see [`SignalPulse_AI_Project_Outline.md`](./SignalPulse_AI_Project_Outline.md).
 
-Under the hood, ingestion cleans, chunks, embeds, and extracts entities into **Neo4j** (documents + passages + embeddings + knowledge-graph links). An **agentic retrieval** layer then chooses among vector, fulltext, and graph tools before composing the answer. Day-to-day value is **fresh monitoring + trustworthy, cited Q&A**; cross-document / relationship lookups are a supporting strength when the graph connects entities.
+---
 
-For the full design (problem statement, concepts, architecture), see
-[`SignalPulse_AI_Project_Outline.md`](./SignalPulse_AI_Project_Outline.md).
+## What it does
+
+| Capability | Description |
+|---|---|
+| **Scheduled collection** | Pulls from official APIs, RSS/Atom feeds, and HTML/PDF sources across cybersecurity, healthcare, technology standards, federal regulation, and state CIO priorities. |
+| **Incremental ingestion** | Content-hash deduplication so only new or changed documents are reprocessed — suitable for weekly or bi-weekly refresh runs. |
+| **Knowledge graph** | Documents, passages, embeddings, and LLM-extracted entities/relationships stored in **Neo4j** with vector and fulltext indexes. |
+| **Agentic RAG chat** | An LLM agent chooses among vector, fulltext, and graph retrieval before composing an answer — always grounded in ingested sources or explicitly refusing when coverage is missing. |
+| **Ingest digest & watchlist** | After each run, a digest summarizes new/updated documents and flags items matching configurable watchlist keywords (e.g. ransomware, NIST CSF, prior authorization). |
+| **Web console** | A FastAPI-backed dashboard for corpus overview, document browse, pipeline status, digest/alerts, and cited Q&A. |
+
+### Sources in scope
+
+CISA Known Exploited Vulnerabilities · NVD CVEs · Federal Register (CMS, HHS/ONC, Defense) · NIST news, CSF, RMF, SP 800-53 · HealthIT.gov · NASCIO state CIO priorities · agency reference seeds
+
+All ingested material is **public U.S. government information** — no confidential or proprietary data is collected or stored.
+
+---
+
+## How it works
+
+```
+  Official sources          Ingestion pipeline              Neo4j store              Agentic RAG
+  (APIs · RSS · HTML/PDF)   Extract → Clean → Chunk         Documents                Vector search
+                            → Embed → Extract entities  →   Passages + embeddings →  Fulltext search
+                            → Load graph                    Entities + relationships Graph search
+                                                                                      ↓
+                                                                                 Cited answer
+                                                                                 (or clear refuse)
+```
+
+1. **Connectors** fetch and normalize content into a common document format regardless of source type (JSON, XML, HTML, PDF).
+2. **Processing** cleans text, splits it into overlapping passages, and generates local embeddings (`BAAI/bge-small-en-v1.5` — no embedding API required).
+3. **Extraction** uses an LLM to pull entities and typed relationships from each passage.
+4. **Loading** writes documents, chunks, vectors, and graph links into Neo4j.
+5. **Retrieval** exposes three tools — semantic vector search, keyword fulltext search, and graph traversal — that an agent selects based on the question.
+6. **Digest** records what changed in each run and surfaces watchlist matches in the console and `data/processed/digest_latest.md`.
+
+Embeddings run locally; LLM calls use free-tier API providers (Groq primary, with optional fallbacks).
+
+---
+
+## Web console
+
+The console runs at `http://localhost:8501` and provides five workspaces:
+
+| View | Purpose |
+|---|---|
+| **Intelligence Hub** | Corpus KPIs, charts, recent documents, last ingest summary |
+| **Ask Assistant** | Plain-English Q&A with clickable source citations |
+| **Corpus** | Browse and search every ingested document |
+| **Data Factory** | Pipeline stages, connector catalog, ingest digest & watchlist alerts |
+| **About** | Project overview and grounding policy |
+
+Launch with Neo4j running:
+
+```powershell
+.\start_neo4j.ps1
+.\run_chat.ps1
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.11 / 3.12 |
+| Graph database | Neo4j Community 5.26 (local, portable runtime) |
+| Embeddings | `sentence-transformers` / BGE-small-en-v1.5 (local) |
+| LLM | Groq (primary), Mistral / DeepSeek / Gemini (fallbacks) |
+| Agent & tools | LangChain-style agentic loop with vector, fulltext, graph tools |
+| Web UI | FastAPI + custom HTML/CSS/JS |
+| Scheduling | Windows Task Scheduler (optional unattended ingest) |
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Python 3.11 or 3.12
+- Git
+- At least one free LLM API key ([Groq](https://console.groq.com/keys) recommended)
+- Windows PowerShell (primary scripts; core Python package is cross-platform)
+
+Neo4j is provided via a portable local runtime — no Docker or cloud account required.
+
+### Installation
+
+```powershell
+git clone https://github.com/Saihaj-coder/SignalPulse_AI.git
+cd SignalPulse_AI
+
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+Copy-Item .env.example .env
+# Edit .env — set NEO4J_PASSWORD and at least GROQ_API_KEY
+```
+
+Verify the environment:
+
+```powershell
+python -m signalpulse.check_setup
+```
+
+Start Neo4j (first run downloads the portable JDK + Neo4j into `runtime/`, gitignored):
+
+```powershell
+.\start_neo4j.ps1
+# Browser: http://localhost:7474  ·  Bolt: bolt://localhost:7687
+```
+
+### First ingest
+
+```powershell
+python run_pipeline.py --profile demo
+# or: .\run_demo_ingest.ps1
+```
+
+Profiles: `demo` / `weekly` (richer cyber + NIST + CMS pull) · `full` (all sources) · `smoke` (plumbing check). List all with `python run_pipeline.py --list-profiles`.
+
+Each successful run writes `data/processed/last_ingest.json` and an ingest digest. Re-runs are incremental — unchanged documents are skipped.
+
+### API keys
+
+| Variable | Purpose | Required |
+|---|---|---|
+| `GROQ_API_KEY` | Primary LLM | Recommended |
+| `MISTRAL_API_KEY` | Fallback LLM | Optional |
+| `DEEPSEEK_API_KEY` | Fallback LLM | Optional |
+| `GOOGLE_API_KEY` | Gemini fallback | Optional |
+| `NVD_API_KEY` | Higher NVD rate limits | Optional |
+| `REGULATIONS_GOV_API_KEY` | Regulations.gov | Optional |
+
+Embeddings require no key. Neo4j uses the password set in `.env` (`NEO4J_PASSWORD`).
+
+> **Security:** Copy `.env.example` to `.env` locally — never commit `.env`. The `runtime/` and `data/raw/` + `data/processed/` directories are gitignored and stay on the machine where ingestion runs.
+
+---
+
+## Automation
+
+Unattended ingest is supported on Windows via Task Scheduler. The runner starts Neo4j if needed, waits for connectivity, runs the pipeline, writes the digest, logs to `data/processed/scheduled_ingest.log`, and stops Neo4j when safe (unless the chat console is active).
+
+```powershell
+# Test the unattended flow once
+.\run_scheduled_ingest.ps1 -IngestProfile weekly
+
+# Register a weekly job (default: Sunday 13:00, 3-month trial window)
+.\register_scheduled_ingest.ps1 -Cadence Weekly -Time 13:00
+
+# Remove the scheduled task
+.\register_scheduled_ingest.ps1 -Unregister
+```
+
+Bi-weekly mode skips runs when the last successful ingest was fewer than 13 days ago.
+
+---
+
+## Watchlist & ingest digest
+
+Watchlist keywords live in `data/seeds/watchlist.txt` (one term per line; `#` comments allowed). After each pipeline run:
+
+- **`data/processed/digest_latest.md`** — human-readable summary of new/updated documents
+- **`data/processed/digest_latest.json`** — machine-readable digest for the console
+- **Data Factory view** — metric cards, watchlist chips, alert highlights, and per-domain change lists
+
+This provides lightweight monitoring: the system surfaces what landed and which items match configured topics, without requiring a manual query each week.
 
 ---
 
@@ -18,266 +188,59 @@ For the full design (problem statement, concepts, architecture), see
 
 ```
 SignalPulse_AI/
+├── signalpulse/               # Core package (connectors, pipeline, retrieval, agent)
+├── web/                       # Console frontend (HTML/CSS/JS)
 ├── notebooks/                 # Step-by-step build notebooks
-├── signalpulse/               # Reusable Python package (ETL, retrieval, agent)
-├── web/                       # Enterprise console (HTML/CSS/JS)
-│   ├── index.html
-│   └── static/
-├── data/
-│   ├── seeds/                 # Seed text (NASCIO, agency glossary) — tracked
-│   ├── raw/                   # Local fetch cache — gitignored
-│   └── processed/             # Ingest/eval stamps — gitignored
-├── webapp.py                  # Primary UI backend (FastAPI)
-├── run_chat.ps1               # Launch the web console locally
-├── run_pipeline.py            # Ingestion pipeline CLI
-├── run_demo_ingest.ps1        # Demo/weekly ingest helper
-├── run_scheduled_ingest.ps1   # Unattended: start Neo4j → ingest → stop
-├── register_scheduled_ingest.ps1  # Register weekly/bi-weekly Task Scheduler job
-├── run_eval.py                # Practical question eval runner
+├── data/seeds/                # Watchlist, NASCIO text, agency glossary
+├── webapp.py                  # FastAPI backend
+├── run_pipeline.py            # Ingestion CLI
+├── run_scheduled_ingest.ps1   # Unattended ingest runner
+├── register_scheduled_ingest.ps1
 ├── start_neo4j.ps1 / stop_neo4j.ps1
+├── run_chat.ps1               # Launch web console
+├── run_eval.py                # Practical Q&A evaluation
 ├── requirements.txt
-├── .env.example               # Copy to .env (never commit .env)
-├── SignalPulse_AI_Project_Outline.md
-└── README.md
+├── .env.example
+└── SignalPulse_AI_Project_Outline.md
 ```
 
-The project uses a **hybrid** layout: notebooks tell the story and show outputs
-for learning/demo; the `signalpulse/` package holds the reusable code that the
-notebooks, chat UI, and `run_pipeline.py` all import.
-
-> **Do not commit secrets.** Copy `.env.example` → `.env` locally. Neo4j under
-> `runtime/` and corpus caches under `data/raw/` + `data/processed/` stay local.
+Notebooks document the build story; the `signalpulse/` package is what the pipeline, console, and evaluation scripts import at runtime.
 
 ---
 
-## Prerequisites
+## Build status
 
-1. **Python 3.11 or 3.12** (recommended for `torch` / `sentence-transformers` wheels).
-2. **Neo4j** via this project's portable runtime (`.\start_neo4j.ps1`) — no Docker
-   required. Docker Desktop / Neo4j Desktop also work if you prefer.
-3. **Git** (for version control / GitHub).
-4. At least one free LLM API key (Groq recommended) — see below.
-
----
-
-## Setup (Windows / PowerShell)
-
-Clone the repository, then run these commands from the project root.
-
-### 1. Create and activate a virtual environment (Python 3.12)
-
-```powershell
-# Create the venv using the 3.12 interpreter
-py -3.12 -m venv .venv
-
-# Activate it
-.\.venv\Scripts\Activate.ps1
-```
-
-> If activation is blocked by execution policy, run once:
-> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
-
-You should now see `(.venv)` at the start of your prompt.
-
-### 2. Install dependencies
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-> This installs PyTorch (via `sentence-transformers`) and can take several
-> minutes and a few GB the first time. CPU-only is fine — no GPU required.
-
-### 3. Create your `.env` file
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Then open `.env` and fill in your keys (see the next section).
-
-### 4. Start Neo4j
-
-This project uses a **portable, local Neo4j Community Server** (v5.26 LTS) with a
-bundled Java runtime, installed under `runtime/` (git-ignored). No Docker and no
-system-wide install required. Helper scripts start/stop it:
-
-```powershell
-.\start_neo4j.ps1     # start the database (takes ~20-30s)
-.\stop_neo4j.ps1      # stop the database
-```
-
-- Browser UI: <http://localhost:7474> on your machine (user `neo4j`; password is
-  whatever you set for `NEO4J_PASSWORD` in `.env`)
-- Bolt URI (used by the app): `bolt://localhost:7687`
-- Startup logs: `runtime\neo4j-out.log`
-
-> We run Neo4j **locally** rather than on AuraDB Free so it never pauses on
-> idle and has no node-count cap. The APOC plugin and vector-index support are
-> already configured.
-
-> **First-time setup note:** the portable JDK + Neo4j are downloaded into
-> `runtime/`. If you move the project to a new machine, re-run the setup so those
-> are re-downloaded (they are intentionally excluded from git).
-
-### 5. Verify the environment
-
-```powershell
-python -m signalpulse.check_setup
-```
-
-You should see `[ OK ]` for the packages and a config summary. A `[WARN]` on the
-Neo4j connection is fine if you haven't started it yet.
+| Step | Deliverable | Status |
+|---|---|---|
+| 0 | Project setup | Done |
+| 1 | Neo4j schema | Done |
+| 2 | Data connectors | Done |
+| 3 | Clean, chunk & embed | Done |
+| 4 | LLM entity extraction | Done |
+| 5 | Graph loader | Done |
+| 6 | Ingestion pipeline | Done |
+| 7 | Retrieval tools | Done |
+| 8 | Agentic RAG | Done |
+| 9 | Web console | Done |
+| 10 | Evaluation | Done |
+| 11 | Scheduled ingest & digest alerts | Done |
 
 ---
 
-## Free API keys — where to get each
+## Roadmap
 
-All services below have **free tiers**; no paid account is required.
-
-| Key | Used for | Where to get it | Required? |
-|---|---|---|---|
-| `GROQ_API_KEY` | Primary LLM (high free throughput + tools) | <https://console.groq.com/keys> | Recommended |
-| `MISTRAL_API_KEY` | Fallback LLM when Groq is rate-limited | <https://console.mistral.ai/> | Optional |
-| `DEEPSEEK_API_KEY` | Fallback LLM (key from platform.deepseek.com) | <https://platform.deepseek.com/api_keys> | Optional |
-| `GOOGLE_API_KEY` | Gemini fallback (~20 req/day on free tier) | <https://aistudio.google.com/apikey> | Optional |
-| `NVD_API_KEY` | Higher rate limit for CVE data | <https://nvd.nist.gov/developers/request-an-api-key> | Optional |
-| `REGULATIONS_GOV_API_KEY` | Regulations.gov docket data | <https://open.gsa.gov/api/regulationsgov/> | Optional (`DEMO_KEY` works for light testing) |
-
-Notes:
-- Free-tier keys stay valid, but **daily/minute quotas** still apply. `ask()` tries
-  providers in order (`LLM_PROVIDER`, then mistral → deepseek → gemini) on 429/quota.
-- Get DeepSeek keys from **platform.deepseek.com** (format `sk-…`). Other `sk-lit-…`
-  keys are not accepted by the official DeepSeek API.
-- **Neo4j** needs no key — just the username/password you set when starting it.
-- **Embeddings** run locally (`BAAI/bge-small-en-v1.5`) — no key, downloaded
-  automatically on first use.
+- **Hosted deployment** — FastAPI console + managed Neo4j, HTTPS, SSO for internal teams
+- **Push notifications** — email or Teams/Slack delivery for digest and watchlist alerts
+- **Expanded evaluation** — broader question sets, refuse-rate tracking, optional Ragas CI checks
+- **Additional connectors** — more official APIs/feeds with documented fallbacks
+- **Operational polish** — ingest history UI, source failure alerting, batch tuning
 
 ---
 
-## Running the ingestion pipeline
+## Disclaimer
 
-Neo4j must be up first:
-
-```powershell
-.\start_neo4j.ps1
-```
-
-### Company demo / weekly refresh (recommended)
-
-Pulls **overlapping cyber + NIST + CMS** sources at higher depth (~20 docs/source,
-up to 4 chunks/doc) so chat answers and the knowledge graph are denser.
-Seed/fallback sources (NASCIO text, HealthIT scrape) stay included when live
-sites block automation.
-
-```powershell
-# One-shot richer ingest for demos
-.\run_demo_ingest.ps1
-# equivalent:
-python run_pipeline.py --profile demo
-
-# Weekly habit (same depth; incremental — skips unchanged docs)
-.\run_demo_ingest.ps1 -Weekly
-# equivalent:
-python run_pipeline.py --profile weekly
-```
-
-Other profiles:
-
-```powershell
-python run_pipeline.py --list-profiles
-python run_pipeline.py --profile full     # all sources, moderate depth
-python run_pipeline.py --profile smoke    # tiny plumbing check
-python run_pipeline.py --source cisa_kev --limit 5
-```
-
-Each successful run writes `data/processed/last_ingest.json` (timestamp + counts).
-Incremental re-runs skip unchanged docs, so a second `demo`/`weekly` pass after
-LLM quota resets will pick up any rate-limited failures (common on dense NIST
-800-53 controls). Seed/fallback connectors remain when live .gov sites return 403.
+SignalPulse AI is a demonstration and evaluation prototype. It is not legal or compliance advice. Collection runs on a schedule or on demand — not as a live second-by-second feed. For decisions that matter, always confirm details on the original `.gov` source page.
 
 ---
 
-## Web console
-
-Custom enterprise console (FastAPI + HTML/CSS/JS) over the live Neo4j corpus and
-the `ask()` agent, with five workspaces:
-
-- **Intelligence Hub** — corpus KPIs, charts, and latest documents at a glance
-- **Ask Assistant** — plain-English Q&A with clickable source citations
-- **Corpus** — browse and search every ingested document
-- **Data Factory** — pipeline/source status and ingest history
-- **About** — what the tool does and how answers stay grounded
-
-```powershell
-.\start_neo4j.ps1
-.\run_chat.ps1
-# equivalent:
-python -m uvicorn webapp:app --host 127.0.0.1 --port 8501 --reload
-```
-
-Then open `http://localhost:8501` in your browser. The console is served
-locally on the machine that runs it — nothing is exposed to the internet.
-
----
-
-## Build roadmap
-
-| Step | Deliverable |
-|---|---|
-| 0 | Project setup |
-| 1 | Neo4j connection + schema (`notebooks/01_neo4j_setup.ipynb`) |
-| 2 | Data connectors (`notebooks/02_connectors.ipynb`) |
-| 3 | Clean, chunk & embed (`notebooks/03_clean_chunk_embed.ipynb`) |
-| 4 | LLM entity extraction (`notebooks/04_extract_entities.ipynb`) |
-| 5 | Graph loader (`notebooks/05_load_graph.ipynb`) |
-| 6 | Full ingestion pipeline (`run_pipeline.py`) |
-| 7 | Retrieval tools (`notebooks/07_retrieval.ipynb`) |
-| 8 | Agentic RAG loop (`notebooks/08_agent.ipynb`) |
-| 9 | Chatbot UI (`webapp.py` + `web/` console) |
-| 10 | Evaluation (`run_eval.py` / practical questions; Ragas optional) |
-| 11 | Polish & demo |
-
-## Scheduled ingest (laptop automation)
-
-Almost everything except “laptop must be able to run” is handled in scripts:
-
-```powershell
-# Dry-run the unattended flow once (starts Neo4j if needed, waits, ingests, stops Neo4j)
-.\run_scheduled_ingest.ps1 -IngestProfile weekly
-
-# Or bi-weekly (skips if last successful ingest was < 13 days ago)
-.\run_scheduled_ingest.ps1 -IngestProfile weekly -BiWeekly
-
-# Register Windows Task Scheduler (Sunday 13:00 / 1 PM by default; wakes from sleep if allowed).
-# By default this is a 3-month TRIAL: the task stops firing after the window and
-# then deletes itself — a safe way to observe automation before committing.
-.\register_scheduled_ingest.ps1 -Cadence Weekly -Time 13:00
-.\register_scheduled_ingest.ps1 -Cadence BiWeekly -Time 13:00
-
-# Choose a different trial length, or run indefinitely with 0
-.\register_scheduled_ingest.ps1 -TrialMonths 2
-.\register_scheduled_ingest.ps1 -TrialMonths 0
-
-# Remove the task at any time
-.\register_scheduled_ingest.ps1 -Unregister
-```
-
-The runner also checks free disk space and logs to `data/processed/scheduled_ingest.log`.
-It stops Neo4j only if **this job started it** and the chat console is not listening on port 8501.
-
-## Future steps
-
-Natural next work after the current demo:
-
-- **Hosted deployment** — move beyond a personal laptop: host the FastAPI console + Neo4j (or managed Neo4j), HTTPS, and basic auth or company SSO for internal employees.
-- **Watchlists & digests** — let users follow topics (e.g., a CVE family, agency, or keyword) and receive email/Teams digests when new matching documents are ingested.
-- **Richer evaluation** — expand the practical question set, track refuse/false-refuse rates over time, and optionally harden Ragas faithfulness checks in CI.
-- **More sources** — add connectors where official APIs/feeds exist (and documented fallbacks where they do not), without changing the rest of the pipeline.
-- **Operational polish** — richer ingest run history in the Data Factory UI, clearer failure alerts when a source/API rate-limits, and tighter overnight batching.
-
----
-
-*All data sources are public U.S. government information; no confidential data
-is collected or stored.*
+*Public U.S. government information only. Built with Neo4j, LangChain-style agentic retrieval, and local embeddings.*

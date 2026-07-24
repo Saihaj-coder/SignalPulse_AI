@@ -325,8 +325,90 @@ async function loadCorpus() {
   });
 }
 
+function renderDigest(data) {
+  const box = $("digestBox");
+  if (!data.available) {
+    box.innerHTML = `<div class="empty">No digest yet — it is generated automatically after each ingest run.</div>`;
+    return;
+  }
+  const d = data.digest;
+  const when = (d.generated_at || "").replace("T", " ").slice(0, 16);
+  const alertCount = d.alerts?.length || 0;
+
+  const metrics = [
+    [d.new, "New docs"],
+    [d.updated, "Updated"],
+    [alertCount, "Alerts"],
+    [(data.watchlist || []).length, "Watch terms"],
+  ]
+    .map(([v, l]) => `<div class="metric"><div class="v">${v}</div><div class="l">${l}</div></div>`)
+    .join("");
+
+  const chips = (data.watchlist || [])
+    .map((k) => `<span class="digest-chip">${escapeHtml(k)}</span>`)
+    .join("");
+
+  let alertsHtml;
+  if (alertCount) {
+    alertsHtml = d.alerts
+      .map(
+        (a) => `<div class="digest-alert">
+          <div>
+            <div class="name">${
+              a.url
+                ? `<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.title)}</a>`
+                : escapeHtml(a.title)
+            }</div>
+            <div class="meta">${escapeHtml(a.agency || "")} · matched <span class="kw">${escapeHtml((a.watchlist_hits || []).join(", "))}</span></div>
+          </div>
+          ${a.url ? `<a class="open" href="${escapeHtml(a.url)}" target="_blank" rel="noopener">Open ↗</a>` : ""}
+        </div>`
+      )
+      .join("");
+  } else {
+    alertsHtml = `<div class="muted">No watchlist matches in the last run.</div>`;
+  }
+
+  const changeRow = (c) => `<div class="digest-row">
+    <span class="digest-status${c.status === "new" ? "" : " upd"}">${c.status === "new" ? "NEW" : "UPD"}</span>
+    <span class="badge ${badgeClass(c.agency)}">${escapeHtml(c.agency || "—")}</span>
+    <span class="digest-title">${
+      c.url
+        ? `<a href="${escapeHtml(c.url)}" target="_blank" rel="noopener" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</a>`
+        : escapeHtml(c.title)
+    }</span>
+  </div>`;
+
+  const changesHtml = (d.by_domain || [])
+    .map(
+      (g) => `<div class="digest-group">
+        <div class="domain">${escapeHtml(g.domain)}</div>
+        ${g.items.map(changeRow).join("")}
+      </div>`
+    )
+    .join("");
+
+  box.innerHTML = `
+    <div class="digest-sub">Run ${escapeHtml(when)} UTC · profile “${escapeHtml(d.profile)}” · ${d.total_changes} change(s)</div>
+    <div class="digest-metrics">${metrics}</div>
+    <div class="digest-watch"><span class="label">Watchlist</span>${chips || '<span class="muted">empty — add terms to data/seeds/watchlist.txt</span>'}</div>
+    <div class="digest-h">Watchlist alerts</div>
+    ${alertsHtml}
+    ${
+      d.total_changes
+        ? `<div class="digest-h">All changes in this run</div>${changesHtml}`
+        : `<div class="muted">No new or updated documents in the last run — the corpus was already current.</div>`
+    }
+  `;
+}
+
 async function loadPipeline() {
-  const [pipe, ov] = await Promise.all([api("/api/pipeline"), api("/api/sources")]);
+  const [pipe, ov, dig] = await Promise.all([
+    api("/api/pipeline"),
+    api("/api/sources"),
+    api("/api/digest"),
+  ]);
+  renderDigest(dig);
   $("stages").innerHTML = pipe.stages
     .map(
       (s) => `<div class="stage"><div class="n">0${s.n}</div><div class="name">${escapeHtml(s.name)}</div><div class="detail">${escapeHtml(s.detail)}</div></div>`

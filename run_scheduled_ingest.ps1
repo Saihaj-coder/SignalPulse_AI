@@ -120,8 +120,15 @@ try {
     $deadline = (Get-Date).AddSeconds($Neo4jWaitSeconds)
     $ready = $false
     while ((Get-Date) -lt $deadline) {
-        & $py -c "from signalpulse import graph; graph.verify_connectivity()" 2>$null
-        if ($LASTEXITCODE -eq 0) {
+        # The probe is EXPECTED to fail while Neo4j boots. Under EAP=Stop,
+        # PowerShell 5.1 treats redirected native stderr as a terminating
+        # error, so relax it just for this call.
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        & $py -c "from signalpulse import graph; graph.verify_connectivity()" 2>&1 | Out-Null
+        $probeExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEap
+        if ($probeExit -eq 0) {
             $ready = $true
             break
         }
@@ -139,8 +146,12 @@ try {
     if ($Force) { $pipelineArgs += "--force" }
 
     Write-Log "Starting ingest profile='$IngestProfile' (LLM extraction can take a while)..." "Green"
+    # Same EAP guard: warnings printed to stderr must not abort the run.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     & $py @pipelineArgs
     $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
     if ($exitCode -eq 0) {
         Write-Log "Ingest finished successfully." "Green"
     } else {

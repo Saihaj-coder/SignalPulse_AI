@@ -32,6 +32,7 @@ from signalpulse.dashboard import (  # noqa: E402
     pipeline_story,
     source_catalog,
 )
+from signalpulse.digest import load_latest_digest, load_watchlist  # noqa: E402
 from signalpulse.ui_helpers import compose_answer_message, extract_urls  # noqa: E402
 
 app = FastAPI(title="SignalPulse AI", version="1.0.0")
@@ -90,6 +91,16 @@ def api_sources() -> dict[str, Any]:
 @app.get("/api/pipeline")
 def api_pipeline() -> dict[str, Any]:
     return pipeline_story()
+
+
+@app.get("/api/digest")
+def api_digest() -> dict[str, Any]:
+    digest = load_latest_digest()
+    return {
+        "available": digest is not None,
+        "watchlist": load_watchlist(),
+        "digest": digest,
+    }
 
 
 @app.post("/api/ask")

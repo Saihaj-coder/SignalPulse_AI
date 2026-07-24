@@ -35,6 +35,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from signalpulse import connectors as C
+from signalpulse import digest as D
 from signalpulse import graph
 from signalpulse import loader as L
 from signalpulse.config import PROCESSED_DIR, settings
@@ -164,6 +165,18 @@ def main(argv: list[str] | None = None) -> int:
         [c.name for c in connectors],
     )
     print(f"Ingest stamp  : {stamp}")
+
+    digest = D.build_digest(report.changes, profile=profile_name)
+    D.write_digest(digest)
+    print(f"Digest        : {D.DIGEST_MD}")
+    if digest["alerts"]:
+        print(f"Watchlist     : {len(digest['alerts'])} alert(s)")
+        for a in digest["alerts"]:
+            hits = ", ".join(a["watchlist_hits"])
+            print(f"  [ALERT] {a['title'][:60]}  (matched: {hits})")
+    elif digest["watchlist"]:
+        print("Watchlist     : no matches this run")
+
     print("Graph summary :", L.graph_summary())
 
     processed = report.new + report.updated + report.skipped
